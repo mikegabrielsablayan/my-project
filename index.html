@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mike Gabriel Y. Sablayan | Hello, I'm</title>
+    <title>Mike Gabriel Y. Sablayan | Portfolio</title>
     <style>
         /* --- CSS VARIABLES & RESET --- */
         :root {
@@ -38,6 +38,17 @@
             width: 100%;
             height: 100%;
             z-index: -1; /* Behind everything */
+            background: var(--dark);
+        }
+
+        /* Entry overlay canvas (blocks falling reveal) */
+        #entry-canvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2000; /* above everything while animating */
+            pointer-events: auto; /* block interaction until removed */
             background: var(--dark);
         }
 
@@ -317,6 +328,8 @@
 <body>
 
     <canvas id="pixel-canvas"></canvas>
+    <!-- Entry blocks overlay canvas -->
+    <canvas id="entry-canvas" aria-hidden="true"></canvas>
 
     <nav>
         <div class="logo">MG.YS</div>
@@ -332,7 +345,7 @@
     </nav>
 
     <section id="hero">
-        <p style="color: var(--primary); letter-spacing: 2px; font-weight: bold;">PORTFOLIO</p>
+        <p style="color: var(--primary); letter-spacing: 2px; font-weight: bold;">Hello, I'm</p>
         <h1>Mike Gabriel Y. Sablayan</h1>
         <div class="typewriter" id="typewriter"></div>
         <div style="margin-top: 1rem; color: var(--gray);">Paranas, Samar, Philippines</div>
@@ -345,11 +358,12 @@
     <section id="about">
         <h2>About Me</h2>
         <div class="about-grid">
+
             <div class="info-card">
                 <h3 style="color: var(--primary); margin-bottom: 1rem;">Education</h3>
                 <h4>Bachelor of Science in Computer Engineering</h4>
                 <p>Samar State University (SSU)</p>
-                <p style="color: var(--gray); margin-top: 0.5rem;">Expected Graduation: June 2026</p>
+                <p style="color: var(--gray); margin-top: 0.5rem;">Expected Graduation: May 2026</p>
             </div>
             <div class="info-card">
                 <h3 style="color: var(--primary); margin-bottom: 1rem;">Interests</h3>
@@ -388,8 +402,8 @@
                     <span class="project-date">Feb 2024 - Jun 2024</span>
                     <h3>SafeDrive (Thesis)</h3>
                     <p style="margin: 1rem 0; color: #cbd5e1;">
-                        Developed an AI-Driven Cognitive State Monitoring system to enhance driver awareness and road safety. 
-                        My role included device development and annotating/classifying datasets.
+                        An AI-Driven Cognitive State Monitoring System in Enhancing Driver Awareness and Road Safety. 
+                       
                     </p>
                     <div class="project-tech">
                         <span class="tech-badge">AI / ML</span>
@@ -422,8 +436,8 @@
         <div class="achievements-list">
             <div class="achievement-item">
                 <div>
-                    <h4>Regional 1st Place - ESports</h4>
-                    <span style="color: var(--gray);">ICPEP Region VIII, 2024</span>
+                    <h4>Regional Convention 1st Place - ESports</h4>
+                    <span style="color: var(--gray);">ICPEP Region VIII, 2024 </span>
                 </div>
                 <span>🏆</span>
             </div>
@@ -437,7 +451,7 @@
             <div class="achievement-item">
                 <div>
                     <h4>Promotions & Multimedia Committee</h4>
-                    <span style="color: var(--gray);">ICpEP.SE</span>
+                    <span style="color: var(--gray);">Certificate - ICpEP.SE</span>
                 </div>
                 <span>👥</span>
             </div>
@@ -459,7 +473,7 @@
     </footer>
 
     <script>
-        // --- 1. PIXEL BACKGROUND ANIMATION ---
+        // --- 1. PIXEL BACKGROUND ANIMATION (unchanged) ---
         const canvas = document.getElementById('pixel-canvas');
         const ctx = canvas && canvas.getContext ? canvas.getContext('2d') : null;
 
@@ -472,26 +486,36 @@
 
         let width, height;
         let particles = [];
+        let lastTime = performance.now();
+
+        const globalSettings = {
+            densityFactor: 0.00035,
+            maxParticles: 1200,
+            minParticles: 80,
+            speedMultiplier: 1.6,
+            colorPalette: [
+                'rgba(37, 99, 235,',
+                'rgba(99, 102, 241,',
+                'rgba(56, 189, 248,',
+                'rgba(99, 102, 241,'
+            ]
+        };
 
         function resize() {
             const dpr = window.devicePixelRatio || 1;
             const cssWidth = window.innerWidth;
             const cssHeight = window.innerHeight;
 
-            // Set CSS size (what the page sees)
             canvas.style.width = cssWidth + 'px';
             canvas.style.height = cssHeight + 'px';
 
-            // Set actual pixel buffer size for sharpness on high-DPI displays
             canvas.width = Math.floor(cssWidth * dpr);
             canvas.height = Math.floor(cssHeight * dpr);
 
-            // Keep logical drawing coordinates in CSS pixels by setting transform
             if (ctx && typeof ctx.setTransform === 'function') {
                 ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
             }
 
-            // store logical sizes (CSS pixels)
             width = cssWidth;
             height = cssHeight;
         }
@@ -500,44 +524,96 @@
             constructor() {
                 this.x = Math.random() * width;
                 this.y = Math.random() * height;
-                this.size = Math.random() * 3 + 1;
-                this.speedX = Math.random() * 0.5 - 0.25;
-                this.speedY = Math.random() * 0.5 - 0.25;
-                this.opacity = Math.random() * 0.5 + 0.1;
+                this.size = Math.random() * 3 + 0.8;
+                this.opacity = Math.random() * 0.6 + 0.15;
+                this.colorBase = globalSettings.colorPalette[Math.floor(Math.random() * globalSettings.colorPalette.length)];
+                const r = Math.random();
+                if (r < 0.45) this.behavior = 'drift';
+                else if (r < 0.8) this.behavior = 'wander';
+                else this.behavior = 'orbit';
+                this.speedX = (Math.random() * 2 - 1) * (Math.random() * 0.6 + 0.4) * globalSettings.speedMultiplier;
+                this.speedY = (Math.random() * 2 - 1) * (Math.random() * 0.6 + 0.4) * globalSettings.speedMultiplier;
+                this.vx = (Math.random() * 2 - 1) * 0.6 * globalSettings.speedMultiplier;
+                this.vy = (Math.random() * 2 - 1) * 0.6 * globalSettings.speedMultiplier;
+                this.wanderChangeProb = 0.02 + Math.random() * 0.03;
+                this.centerX = this.x;
+                this.centerY = this.y;
+                this.radius = Math.random() * 40 + 20;
+                this.angle = Math.random() * Math.PI * 2;
+                this.angularSpeed = (Math.random() * 1.2 + 0.4) * 0.02 * globalSettings.speedMultiplier;
+                if (this.behavior === 'orbit') {
+                    this.angularSpeed *= (Math.random() < 0.5 ? 1.5 : 1.0);
+                    this.radius *= (Math.random() * 1.5 + 0.8);
+                }
+                this.speedFactor = Math.random() * 0.9 + 0.6;
+                this.tOffset = Math.random() * 1000;
             }
             
-            update() {
-                this.x += this.speedX;
-                this.y += this.speedY;
-                
-                if (this.x > width) this.x = 0;
-                if (this.x < 0) this.x = width;
-                if (this.y > height) this.y = 0;
-                if (this.y < 0) this.y = height;
+            update(dt, now) {
+                if (this.behavior === 'drift') {
+                    const wobble = Math.sin((now + this.tOffset) * 0.001 + this.x * 0.01) * 0.4;
+                    this.x += (this.speedX + wobble) * this.speedFactor * (dt / 16.67);
+                    this.y += (this.speedY + Math.cos((now + this.tOffset) * 0.001 + this.y * 0.01) * 0.4) * this.speedFactor * (dt / 16.67);
+                } else if (this.behavior === 'wander') {
+                    if (Math.random() < this.wanderChangeProb) {
+                        this.vx += (Math.random() * 2 - 1) * 0.6;
+                        this.vy += (Math.random() * 2 - 1) * 0.6;
+                        const max = 2.2 * globalSettings.speedMultiplier;
+                        this.vx = Math.max(-max, Math.min(max, this.vx));
+                        this.vy = Math.max(-max, Math.min(max, this.vy));
+                    }
+                    this.vx *= 0.995;
+                    this.vy *= 0.995;
+                    this.x += this.vx * this.speedFactor * (dt / 16.67);
+                    this.y += this.vy * this.speedFactor * (dt / 16.67);
+                } else if (this.behavior === 'orbit') {
+                    this.angle += this.angularSpeed * (dt / 16.67);
+                    this.centerX += Math.sin((now + this.tOffset) * 0.0003) * 0.15;
+                    this.centerY += Math.cos((now + this.tOffset) * 0.00027) * 0.15;
+                    this.x = this.centerX + Math.cos(this.angle) * this.radius;
+                    this.y = this.centerY + Math.sin(this.angle) * this.radius;
+                }
+
+                if (this.x > width + 10) this.x = -10;
+                if (this.x < -10) this.x = width + 10;
+                if (this.y > height + 10) this.y = -10;
+                if (this.y < -10) this.y = height + 10;
+
+                if (this.behavior === 'orbit') {
+                    if (this.centerX < -50 || this.centerX > width + 50 || this.centerY < -50 || this.centerY > height + 50) {
+                        this.centerX = Math.random() * width;
+                        this.centerY = Math.random() * height;
+                    }
+                }
             }
             
             draw() {
                 if (!ctx) return;
-                ctx.fillStyle = `rgba(37, 99, 235, ${this.opacity})`;
-                // draw using logical (CSS) pixels; transform handles DPI scaling
-                ctx.fillRect(this.x, this.y, this.size, this.size);
+                ctx.fillStyle = `${this.colorBase} ${this.opacity})`;
+                const s = Math.max(0.6, this.size);
+                ctx.fillRect(this.x, this.y, s, s);
             }
         }
         
         function initParticles() {
             particles = [];
-            const particleCount = Math.max(10, Math.floor(window.innerWidth / 10));
+            const area = Math.max(1, width * height);
+            const estimated = Math.floor(area * globalSettings.densityFactor * (window.devicePixelRatio || 1));
+            const particleCount = Math.min(globalSettings.maxParticles, Math.max(globalSettings.minParticles, estimated));
             for (let i = 0; i < particleCount; i++) {
                 particles.push(new Particle());
             }
         }
         
-        function animateParticles() {
+        function animateParticles(now) {
             if (!ctx) return;
-            // clear in logical coordinates (CSS pixels)
+            const dt = now - lastTime;
+            lastTime = now;
+
             ctx.clearRect(0, 0, width, height);
+
             for (const p of particles) {
-                p.update();
+                p.update(dt, now);
                 p.draw();
             }
             requestAnimationFrame(animateParticles);
@@ -548,14 +624,155 @@
             initParticles();
         });
 
-        // initialize
         resize();
         initParticles();
-        animateParticles();
+        requestAnimationFrame(animateParticles);
+
+        // --- ENTRY: BLOX FALLING ANIMATION (4s) ---
+        (function blocksFallingEntry() {
+            const entryCanvas = document.getElementById('entry-canvas');
+            if (!entryCanvas) return;
+            const eCtx = entryCanvas.getContext ? entryCanvas.getContext('2d') : null;
+            if (!eCtx) return;
+
+            let dpr = window.devicePixelRatio || 1;
+
+            function resizeEntry() {
+                dpr = window.devicePixelRatio || 1;
+                const cssW = window.innerWidth;
+                const cssH = window.innerHeight;
+                entryCanvas.style.width = cssW + 'px';
+                entryCanvas.style.height = cssH + 'px';
+                entryCanvas.width = Math.floor(cssW * dpr);
+                entryCanvas.height = Math.floor(cssH * dpr);
+                if (typeof eCtx.setTransform === 'function') eCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            }
+
+            window.addEventListener('resize', resizeEntry);
+            resizeEntry();
+
+            // Configurable parameters
+            const totalDuration = 4000;    // total run time in ms
+            const blockSizeTarget = Math.max(18, Math.round(Math.min(window.innerWidth, window.innerHeight) / 28)); // approximate block size in CSS px
+            // Stagger per column so blocks fall in a wave (ms)
+            const staggerPerCol = 55;
+            // per-block horizontal jitter in delay (ms)
+            const jitterRange = 60;
+            // Colors for blocks (use palette)
+            const palette = ['#0f172a', '#14233a', '#173255', '#1e61ff', '#2563eb', '#60a5fa'];
+
+            // compute grid in CSS pixels
+            const cssW = () => entryCanvas.width / dpr;
+            const cssH = () => entryCanvas.height / dpr;
+
+            let cols, rows, blockSize;
+            function computeGrid() {
+                blockSize = blockSizeTarget;
+                cols = Math.ceil(cssW() / blockSize);
+                rows = Math.ceil(cssH() / blockSize);
+            }
+            computeGrid();
+
+            // Build blocks array
+            const blocks = [];
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const x = c * blockSize;
+                    const y = r * blockSize;
+                    // Delay: based primarily on column to create "falling columns" cascade, plus small random jitter and row offset
+                    const baseDelay = c * staggerPerCol;
+                    const rowOffset = Math.random() * 120 * (r / rows); // small increase for lower rows
+                    const jitter = (Math.random() * 2 - 1) * jitterRange;
+                    // Each block will start its fall at:
+                    const delay = Math.max(0, baseDelay + rowOffset + jitter);
+                    // falling duration per block; ensure blocks finish by totalDuration
+                    const maxPossibleDelay = (cols - 1) * staggerPerCol + 200 + jitterRange;
+                    const duration = Math.max(350, totalDuration - maxPossibleDelay); // at least 350ms per block
+                    // color pick with some variation
+                    const color = palette[Math.floor(Math.random() * palette.length)];
+                    blocks.push({
+                        x, y, w: blockSize, h: blockSize,
+                        delay, duration,
+                        color,
+                        // initial and final states
+                        startY: y,
+                        endY: cssH() + Math.random() * (blockSize * 3 + 40), // drop beyond bottom with variation
+                    });
+                }
+            }
+
+            // draw initial full cover (blocks fill screen)
+            function drawBlocks(progressMap) {
+                eCtx.clearRect(0, 0, cssW(), cssH());
+                for (const b of blocks) {
+                    const p = progressMap.get(b) || 0; // 0..1 where 0 = before fall, 1 = finished falling (offscreen)
+                    // If p==0, draw at startY; if p==1 don't draw (offscreen), else interpolate using ease
+                    if (p >= 1) continue;
+                    // easing (cubic out)
+                    const eased = 1 - Math.pow(1 - p, 3);
+                    const curY = b.startY + (b.endY - b.startY) * eased;
+                    eCtx.fillStyle = b.color;
+                    eCtx.fillRect(Math.round(b.x), Math.round(curY), Math.round(b.w)+1, Math.round(b.h)+1);
+                    // subtle inner shading (optional)
+                    eCtx.fillStyle = 'rgba(255,255,255,0.02)';
+                    eCtx.fillRect(Math.round(b.x)+1, Math.round(curY)+1, Math.max(0, Math.round(b.w)-2), Math.max(0, Math.round(b.h)-2));
+                }
+            }
+
+            // Animation loop variables
+            const startTime = performance.now();
+            const progressMap = new Map();
+            let finished = false;
+
+            function tick(now) {
+                const t = now - startTime;
+                // update progress for each block
+                let remaining = 0;
+                for (const b of blocks) {
+                    const localT = t - b.delay;
+                    let p = 0;
+                    if (localT <= 0) p = 0;
+                    else if (localT >= b.duration) p = 1;
+                    else p = localT / b.duration;
+                    progressMap.set(b, p);
+                    if (p < 1) remaining++;
+                }
+
+                drawBlocks(progressMap);
+
+                if (t < totalDuration || remaining > 0) {
+                    requestAnimationFrame(tick);
+                } else {
+                    // all blocks finished: fade out overlay smoothly
+                    finished = true;
+                    entryCanvas.style.transition = `opacity 380ms ease`;
+                    entryCanvas.style.opacity = '0';
+                    entryCanvas.style.pointerEvents = 'none';
+                    setTimeout(() => {
+                        try { entryCanvas.remove(); } catch (e) { /* ignore */ }
+                    }, 420);
+                }
+            }
+
+            // Before starting, ensure pointer interactions are blocked
+            entryCanvas.style.opacity = '1';
+            entryCanvas.style.pointerEvents = 'auto';
+
+            // initial draw (static cover)
+            // fill background dark to ensure no page peeks through
+            eCtx.save();
+            eCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--dark') || '#0f172a';
+            eCtx.fillRect(0, 0, cssW(), cssH());
+            eCtx.restore();
+            drawBlocks(new Map()); // draws initial blocks at startY
+
+            // Kick off animation on next frame
+            requestAnimationFrame(tick);
+        })();
 
         // --- 2. TYPEWRITER & NAV ---
         const textElement = document.getElementById('typewriter');
-        const roles = ["Graphic Design", "Web Development", "Hardware Development", "Videography Enthusiast"];
+        const roles = ["Graphic Design", "Web Development", "Hardware Development", "Videography"];
         let roleIndex = 0;
         let charIndex = 0;
         let isDeleting = false;
@@ -586,7 +803,6 @@
             setTimeout(type, typeSpeed);
         }
 
-        // Start the typewriter safely (works whether script runs before/after DOMContentLoaded)
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
                 if (textElement) type();
